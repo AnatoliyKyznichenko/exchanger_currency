@@ -39,13 +39,15 @@ class Admin:
         except TypeError:
             self.cursor.execute('INSERT INTO sale VALUES (0,0,0,0,0,0,0)')
             self.cursor.execute('INSERT INTO buy VALUES (0,0,0,0,0,0,0)')
+            self.database.commit()
 
     def get_all_currency(self, method):
         return self.cursor.execute(f'SELECT * FROM {method}').fetchall()[0] #кортеж из всех курсов валют
 
     def get_all_currency_dict(self, method):
         self.cursor.row_factory = dict_factory
-        return self.cursor.execute(f'SELECT * FROM {method}').fetchall()[0]
+        cur = self.cursor.execute(f'SELECT * FROM {method}').fetchall()
+        return cur[0] if cur else None
 
     def update_currency(self, coin, method, amount):
         self.cursor.execute(f"UPDATE {method} SET '{coin}'={amount}")

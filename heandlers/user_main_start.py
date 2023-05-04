@@ -39,13 +39,18 @@ async def start(message: types.Message):
 
 @dp.message_handler(text='🏙 Дніпро')
 async def curs_valute(message: types.Message):
-    sale_carrency = [i for i in db.get_all_currency('sale')]
-    buy_currency = [i for i in db.get_all_currency('buy')]
+    sale_carrency = [i for i in db.get_all_currency('sale').values()]
+    buy_currency = [i for i in db.get_all_currency('buy').values()]
     zz = zip(['USD', 'EUR', 'PLN', 'GBP', 'CHF', 'CNY', 'CAD'], buy_currency, sale_carrency)
     result_string = ''
     result_string = ''.join([f'{i[0]}: {i[1]} - {i[2]}\n' for i in zz])
     await message.answer(result_string)
     await message.answer('🔥 Бажаєте купити чи продати валюту ? 🔥', reply_markup=buy_sale_menu)
+
+
+@dp.message_handler(text='Скасувати')
+async def process_cancel(message: types.Message):
+    await message.answer('🔥 Виберіть місто 🔥', reply_markup=city_user)
 
 
 @dp.message_handler(text='🔥 Купити 🔥')
@@ -58,10 +63,14 @@ async def number(message: types.Message):
 async def moneta(message: types.Message, state: FSMContext):
     result = (emoji_pattern.sub(r'', message.text).strip())
     print(result)
+    if result.lower() == "скасувати":
+        await message.answer('🔥 Виберіть місто 🔥', reply_markup=city_user)
+        await state.finish()
+        return
     buy_coin = db.get_all_currency_dict('buy').get(result)
-    print(buy_coin)
-    if result is None:
-        await message.answer('Введите правильную валюту')
+    print(buy_coin, type(buy_coin))
+    if buy_coin is None:
+        # await message.answer('Введите правильную валюту')
         return
     await message.answer(f'Курс: {buy_coin}')
     await state.update_data(data={'valuta_buy': result})
@@ -71,7 +80,11 @@ async def moneta(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state='summa_buy')
 async def number(message: types.Message, state: FSMContext):
-    await state.update_data(data={'adress_buy': float(message.text)})
+    try:
+        amount = float(message.text)
+    except ValueError:
+        return
+    await state.update_data(data={'adress_buy': amount})
     balance = await state.get_data()
     print(balance)
     await message.answer(f'Cумма: {balance["adress_buy"]}')
@@ -125,10 +138,13 @@ async def number(message: types.Message):
 async def moneta(message: types.Message, state: FSMContext):
     result = (emoji_pattern.sub(r'', message.text).strip())
     print(result)
+    if result.lower() == "скасувати":
+        await message.answer('🔥 Виберіть місто 🔥', reply_markup=city_user)
+        await state.finish()
+        return
     coin_ = db.get_all_currency_dict('sale').get(result)
     print(result)
     if coin_ is None:
-        await message.answer('Введите правильную валюту')
         return
     await message.answer(f'Курс: {coin_}')
     await state.update_data(data={'valuta_sale': result})
@@ -138,7 +154,11 @@ async def moneta(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state='summa_sale')
 async def number(message: types.Message, state: FSMContext):
-    await state.update_data(data={'adress_sale': float(message.text)})
+    try:
+        amount = float(message.text)
+    except ValueError:
+        return
+    await state.update_data(data={'adress_sale': amount})
     balance_sale = await state.get_data()
     print(balance_sale)
     await message.answer(f'Cумма: {balance_sale["adress_sale"]}')
